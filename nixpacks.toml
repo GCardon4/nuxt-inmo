@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm i -g pnpm@10.28.2", "pnpm install --frozen-lockfile"]
+cmds = ["npm install"]
 
 [phases.build]
-cmds = ["pnpm build"]
+cmds = ["npm run build"]
 
 [start]
 cmd = "node .output/server/index.mjs"
