@@ -3,33 +3,24 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 
-# Instalar dependencias
-RUN npm ci --only=production=false
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-# Copiar código fuente
 COPY . .
+RUN pnpm build
 
-# Construir la aplicación
-RUN npm run build
+# Etapa de produccion
+FROM node:20-alpine
 
-# Etapa de producción con NGINX
-FROM nginx:alpine
+WORKDIR /app
 
-# Copiar archivos generados de Quasar
-COPY --from=build /app/dist/spa /usr/share/nginx/html
+COPY --from=build /app/.output .output
 
-# Copiar configuración de nginx optimizada para SPA Vue/Quasar
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+ENV HOST=0.0.0.0
+ENV PORT=3000
 
-# Exponer puerto 80
-EXPOSE 80
+EXPOSE 3000
 
-# Agregar healthcheck
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
-
-# Iniciar nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", ".output/server/index.mjs"]
